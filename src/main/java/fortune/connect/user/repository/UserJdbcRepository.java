@@ -14,7 +14,7 @@ import static fortune.connect.util.Utils.toLocalDateTime;
 import static fortune.connect.util.Utils.toUUID;
 
 @Repository
-public class UserJdbcRepository {
+public class UserJdbcRepository implements UserRepository {
   private final NamedParameterJdbcTemplate jdbcTemplate;
 
   public UserJdbcRepository(NamedParameterJdbcTemplate jdbcTemplate) {
@@ -22,15 +22,16 @@ public class UserJdbcRepository {
   }
 
   @Transactional
-  User insert(User newUser) {
-    int updatedUser = jdbcTemplate.update(
-        "insert into users(user_id, username, password, email, student_id, sex, department, introduction, created_at, updated_at)" +
-            " values(UUID_TO_BIN(:userId), :username, :password, :email, :studentId, :sex, :department, :introduction, :createdAt, :updatedAt)",
-        toUserParamMap(newUser));
+  public User insert(User user, Picture picture) {
+    User newUser = makeUserId(user);
     int updatedUserPic = jdbcTemplate.update(
-        "insert into user_pictures(picture_id, user_id, file_name, file_path)" +
-            " values(UUID_TO_BIN(:pictureId), UUID_TO_BIN(:userId), :fileName, :filePath)",
-        toUserPictureParamMap(newUser.getUserId(), newUser.getPicture()));
+        "insert into user_pictures(picture_id, file_path)" +
+            " values(UUID_TO_BIN(:pictureId), :filePath)",
+        toUserPictureParamMap(picture));
+    int updatedUser = jdbcTemplate.update(
+        "insert into users(user_id, picture_id, username, password, email, student_id, sex, department, introduction, created_at, updated_at)" +
+            " values(UUID_TO_BIN(:userId), UUID_TO_BIN(:pictureId), :username, :password, :email, :studentId, :sex, :department, :introduction, :createdAt, :updatedAt)",
+        toUserParamMap(newUser));
 
     if (updatedUser != 1 || updatedUserPic != 1) {
       throw new RuntimeException("Nothing was inserted");
@@ -38,23 +39,28 @@ public class UserJdbcRepository {
     return newUser;
   }
 
-  @Transactional
-  Optional<User> findUserByID(UUID userId) {
+  public Optional<User> findUserById(UUID userId) {
     try {
-      Picture picture = jdbcTemplate.queryForObject(
-          "select * from user_pictures where user_id = UUID_TO_BIN(:userId)",
-          Collections.singletonMap("userId", userId.toString().getBytes()),
-          pictureRowMapper
-      );
       User user = jdbcTemplate.queryForObject(
           "select * from users where user_id = UUID_TO_BIN(:userId)",
           Collections.singletonMap("userId", userId.toString().getBytes()),
           userRowMapper
       );
-      assert user != null;
-      user.setPicture(picture);
       return Optional.of(user);
-    } catch(DataAccessException e){
+    } catch (DataAccessException e) {
+      return Optional.empty();
+    }
+  }
+
+  public Optional<Picture> findUserPictureById(UUID pictureId) {
+    try {
+      Picture picture = jdbcTemplate.queryForObject(
+          "select * from user_pictures where picture_id = UUID_TO_BIN(:pictureId)",
+          Collections.singletonMap("pictureId", pictureId.toString().getBytes()),
+          pictureRowMapper
+      );
+      return Optional.of(picture);
+    } catch (DataAccessException e) {
       return Optional.empty();
     }
   }
@@ -62,45 +68,49 @@ public class UserJdbcRepository {
   private Map<String, Object> toUserParamMap(User newUser) {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put("userId", newUser.getUserId().toString().getBytes());
+    paramMap.put("pictureId", newUser.getPictureId().toString().getBytes());
     paramMap.put("username", newUser.getUsername());
     paramMap.put("password", newUser.getPassword());
     paramMap.put("email", newUser.getEmail().address());
     paramMap.put("studentId", newUser.getStudentId());
     paramMap.put("sex", newUser.getSex().toString());
-    paramMap.put("department", newUser.getDepartment().toString());
+    paramMap.put("department", newUser.getDepartment());
     paramMap.put("introduction", newUser.getIntroduction());
     paramMap.put("createdAt", newUser.getCreatedAt());
-    paramMap.put("updatedAt", newUser.getUpdateAt());
+    paramMap.put("updatedAt", newUser.getUpdatedAt());
     return paramMap;
   }
 
-  private Map<String, Object> toUserPictureParamMap(UUID userID, Picture userPicture) {
+  private Map<String, Object> toUserPictureParamMap(Picture userPicture) {
     Map<String, Object> paramMap = new HashMap<>();
     paramMap.put("pictureId", userPicture.getPictureId().toString().getBytes());
-    paramMap.put("userId", userID.toString().getBytes());
-    paramMap.put("fileName", userPicture.getFileName());
     paramMap.put("filePath", userPicture.getFilePath());
     return paramMap;
   }
 
   private static final RowMapper<User> userRowMapper = (resultSet, i) -> {
     UUID userId = toUUID(resultSet.getBytes("user_id"));
+    UUID pictureId = toUUID(resultSet.getBytes("picture_id"));
     String username = resultSet.getString("username");
     String password = resultSet.getString("password");
     Email email = new Email(resultSet.getString("email"));
     String studentId = resultSet.getString("student_id");
     Sex sex = Sex.valueOf(resultSet.getString("sex"));
-    Department department = Department.valueOf(resultSet.getString("department"));
+    String department = resultSet.getString("department");
     String introduction = resultSet.getString("introduction");
     LocalDateTime createdAt = toLocalDateTime(resultSet.getTimestamp("created_at"));
     LocalDateTime updatedAt = toLocalDateTime(resultSet.getTimestamp("updated_at"));
-    return new User(userId, username, password, email, studentId, sex, department, introduction, createdAt, updatedAt);
+    return new User(userId, pictureId, username, password, email, studentId, sex, department, introduction, createdAt, updatedAt);
   };
 
   private static final RowMapper<Picture> pictureRowMapper = (resultSet, i) -> {
     UUID pictureId = toUUID(resultSet.getBytes("picture_id"));
-    String fileName = resultSet.getString("file_name");
     String filePath = resultSet.getString("file_path");
-    return new Picture(pictureId, fileName, filePath);
+    return new Picture(pictureId, filePath);
   };
+
+  private User makeUserId(User newUser) {
+    newUser.setUserId(UUID.randomUUID());
+    return newUser;
+  }
 }
