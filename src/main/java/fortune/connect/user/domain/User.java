@@ -11,19 +11,19 @@ import java.util.UUID;
 @AllArgsConstructor
 public class User {
   private UUID userId;
+  private UUID pictureId;
   private String username;
   private String password;
   private Email email;
   private String studentId;
   private Sex sex;
-  private Department department;
+  private String department;
   private String introduction;
-  private Picture picture;
   private LocalDateTime createdAt;
-  private LocalDateTime updateAt;
+  private LocalDateTime updatedAt;
 
-  public User(UUID userId, String username, String password, Email email, String studentId, Sex sex, Department department, String introduction, LocalDateTime createdAt, LocalDateTime updateAt) {
-    this.userId = userId;
+  public User(UUID pictureId, String username, String password, Email email, String studentId, Sex sex, String department, String introduction) {
+    this.pictureId = pictureId;
     this.username = username;
     this.password = password;
     this.email = email;
@@ -31,7 +31,7 @@ public class User {
     this.sex = sex;
     this.department = department;
     this.introduction = introduction;
-    this.createdAt = createdAt;
-    this.updateAt = updateAt;
+    this.createdAt = LocalDateTime.now();
+    this.updatedAt = LocalDateTime.now();
   }
 }

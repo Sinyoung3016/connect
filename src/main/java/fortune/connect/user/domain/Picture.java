@@ -13,6 +13,5 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Picture {
   private UUID pictureId;
-  private String fileName;
   private String filePath;
 }
