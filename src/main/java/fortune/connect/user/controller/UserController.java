@@ -33,7 +33,7 @@ public class UserController {
     Picture userPicture = pictureHandler.savePicture(picture, request.getUserPictureName());
     CreateUserDto createUserDto = new CreateUserDto(
         request.getUsername(),
-        request.getPassword(),
+        request.getUsername(),
         new Email(request.getEmail()),
         request.getStudentId(),
         Sex.valueOf(request.getSex()),
@@ -45,7 +45,6 @@ public class UserController {
     UserResponse response = new UserResponse(
         savedUser.getUserId().toString(),
         savedUser.getUsername(),
-        savedUser.getPassword(),
         savedUser.getEmail().address(),
         savedUser.getStudentId(),
         savedUser.getSex().toString(),
@@ -63,7 +62,6 @@ public class UserController {
     UserResponse response = new UserResponse(
         savedUser.getUserId().toString(),
         savedUser.getUsername(),
-        savedUser.getPassword(),
         savedUser.getEmail().address(),
         savedUser.getStudentId(),
         savedUser.getSex().toString(),
@@ -74,10 +72,10 @@ public class UserController {
     return new ResponseEntity<>(response, HttpStatus.FOUND);
   }
 
-  @GetMapping("/user-pictures/{userId}")
-  public ResponseEntity<byte[]> getImage(@PathVariable String userId) throws IOException {
-    UUID userId_ = UUID.fromString(userId);
-    Picture savedUserPicture = userService.getUserPictureById(userId_);
+  @GetMapping("/user-pictures/{pictureId}")
+  public ResponseEntity<byte[]> getImage(@PathVariable String pictureId) throws IOException {
+    UUID pictureId_ = UUID.fromString(pictureId);
+    Picture savedUserPicture = userService.getUserPictureById(pictureId_);
     File file = new File(savedUserPicture.getFilePath());
 
     HttpHeaders header = new HttpHeaders();

@@ -34,4 +34,17 @@ public class User {
     this.createdAt = LocalDateTime.now();
     this.updatedAt = LocalDateTime.now();
   }
+
+  public User(UUID userId, UUID pictureId, String username, Email email, String studentId, Sex sex, String department, String introduction) {
+    this.userId = userId;
+    this.pictureId = pictureId;
+    this.username = username;
+    this.email = email;
+    this.studentId = studentId;
+    this.sex = sex;
+    this.department = department;
+    this.introduction = introduction;
+    this.createdAt = LocalDateTime.now();
+    this.updatedAt = LocalDateTime.now();
+  }
 }
